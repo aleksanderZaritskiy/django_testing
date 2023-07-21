@@ -21,21 +21,21 @@ projects_map = {
     ),
     'ya_news': PathForTests(
         'django_testing/ya_news/news/pytest_tests', ya_news_tests
-    )
+    ),
 }
 
 errors = []
 for project_name, path in projects_map.items():
     if not path.abs_path.is_dir():
-        errors.append(message_template.format(
-            project=project_name, path=path.rel_path
-        ))
+        errors.append(
+            message_template.format(project=project_name, path=path.rel_path)
+        )
         continue
     path_content = [obj for obj in path.abs_path.glob('*.py') if obj.is_file()]
     if not path_content:
-        errors.append(message_template.format(
-            project=project_name, path=path.rel_path
-        ))
+        errors.append(
+            message_template.format(project=project_name, path=path.rel_path)
+        )
 
 
 assert not errors, ''.join(errors)

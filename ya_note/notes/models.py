@@ -9,19 +9,18 @@ class Note(models.Model):
         'Заголовок',
         max_length=100,
         default='Название заметки',
-        help_text='Дайте короткое название заметке'
+        help_text='Дайте короткое название заметке',
     )
-    text = models.TextField(
-        'Текст',
-        help_text='Добавьте подробностей'
-    )
+    text = models.TextField('Текст', help_text='Добавьте подробностей')
     slug = models.SlugField(
         'Адрес для страницы с заметкой',
         max_length=100,
         unique=True,
         blank=True,
-        help_text=('Укажите адрес для страницы заметки. Используйте только '
-                   'латиницу, цифры, дефисы и знаки подчёркивания')
+        help_text=(
+            'Укажите адрес для страницы заметки. Используйте только '
+            'латиницу, цифры, дефисы и знаки подчёркивания'
+        ),
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
