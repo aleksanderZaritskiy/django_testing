@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from notes.models import Note
+from notes.forms import NoteForm
 
 User = get_user_model()
 
@@ -47,4 +48,6 @@ class TestNotesList(TestCase):
                 self.client.force_login(self.author)
                 url = reverse(name, args=args)
                 response = self.client.get(url)
+                type_form = type(response.context['form'])
+                self.assertEqual(type_form, NoteForm)
                 self.assertIn('form', response.context)

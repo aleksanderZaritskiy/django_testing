@@ -1,11 +1,13 @@
 # conftest.py
-import pytest
 from datetime import datetime, timedelta
+
+from django.conf import settings
 from django.utils import timezone
+
+import pytest
 
 # Импортируем модель заметки, чтобы создать экземпляр.
 from news.models import Comment, News
-from django.conf import settings
 
 
 @pytest.fixture
@@ -29,6 +31,11 @@ def create_news():
 
 
 @pytest.fixture
+def pk_for_args(create_news):
+    return (create_news.id,)
+
+
+@pytest.fixture
 def create_comment(create_news, author):
     comment = Comment.objects.create(
         news=create_news,
@@ -39,16 +46,23 @@ def create_comment(create_news, author):
 
 
 @pytest.fixture
+def slug_for_args(create_comment):
+    return (create_comment.id,)
+
+
+@pytest.fixture
 def order_comment(create_news, author):
     now = timezone.now()
-    for index in range(2):
-        comment = Comment.objects.create(
+    comments = [
+        Comment(
             news=create_news,
             author=author,
-            text=f'Текст {index}',
+            text=f'Текст{index}',
+            created=now + timedelta(days=index),
         )
-        comment.created = now + timedelta(days=index)
-        comment.save()
+        for index in range(2)
+    ]
+    return Comment.objects.bulk_create(comments)
 
 
 @pytest.fixture

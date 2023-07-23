@@ -1,26 +1,34 @@
 # test_logic.py
-import pytest
 from http import HTTPStatus
 
-from pytest_django.asserts import assertRedirects, assertFormError
 from django.urls import reverse
 
-from news.models import Comment
-from news.forms import WARNING, BAD_WORDS
+import pytest
+from news.forms import BAD_WORDS, WARNING
+from news.models import Comment, News
+from pytest_django.asserts import assertFormError, assertRedirects
 
 
-def test_user_can_create_comment(admin_client, form_data, create_news):
+def test_user_can_create_comment(
+    admin_user, admin_client, form_data, create_news
+):
     url = reverse('news:detail', args=(create_news.id,))
+    assert Comment.objects.count() == 0
     response = admin_client.post(url, data=form_data)
     assertRedirects(response, f'{url}#comments')
     assert Comment.objects.count() == 1
     new_comment = Comment.objects.get()
+    news = News.objects.get()
+    comment_connect_news = news.comment_set.get()
     assert new_comment.text == form_data['text']
+    assert new_comment.author == admin_user
+    assert new_comment.author == comment_connect_news.author
 
 
 @pytest.mark.django_db
 def test_anonymous_user_cant_create_comment(client, form_data, create_news):
     url = reverse('news:detail', args=(create_news.id,))
+    assert Comment.objects.count() == 0
     response = client.post(url, data=form_data)
     login_url = reverse('users:login')
     expected_url = f'{login_url}?next={url}'
@@ -47,13 +55,18 @@ def test_author_can_edit_comment(
     create_comment,
     create_news,
     form_data,
+    author,
 ):
     url = reverse('news:detail', args=(create_news.id,))
     url_edit = reverse('news:edit', args=(create_comment.id,))
     response = author_client.post(url_edit, form_data)
     assertRedirects(response, f'{url}#comments')
     create_comment.refresh_from_db()
+    news = News.objects.get()
+    comment_connect_news = news.comment_set.get()
     assert create_comment.text == form_data['text']
+    assert create_comment.author == author
+    assert create_comment.author == comment_connect_news.author
 
 
 def test_other_user_cant_edit_comment(admin_client, form_data, create_comment):

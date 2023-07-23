@@ -18,6 +18,12 @@ class TestNotes(TestCase):
         cls.author = User.objects.create(username='тот ещё автор')
         cls.auth_client = Client()
         cls.auth_client.force_login(cls.user)
+        cls.note = Note.objects.create(
+            title='Заголовок',
+            text='Текс записи',
+            slug='slugo',
+            author=cls.author,
+        )
         cls.form_data = {
             'title': 'Заголовок1',
             'text': 'Текс записи1',
@@ -29,18 +35,23 @@ class TestNotes(TestCase):
         url_redirect = reverse('notes:success')
         response = self.auth_client.post(url, data=self.form_data)
         self.assertRedirects(response, url_redirect)
-        notes_count = Note.objects.count()
-        self.assertEqual(notes_count, 1)
-        note = Note.objects.get()
-        self.assertEqual(note.title, self.form_data['title'])
-        self.assertEqual(note.text, self.form_data['text'])
-        self.assertEqual(note.author, self.user)
+        get_note = Note.objects.get(slug='slug3')
+        # Вернет True если запись существует в б/д
+        self.assertTrue(get_note)
+        self.assertEqual(get_note.title, self.form_data['title'])
+        self.assertEqual(get_note.text, self.form_data['text'])
+        self.assertEqual(get_note.author, self.user)
 
     def test_anonymous_user_cant_create_note(self):
         url = reverse('notes:add')
         self.client.post(url, data=self.form_data)
-        notes_count = Note.objects.count()
-        self.assertEqual(notes_count, 0)
+        # Поиск созданной записи анонимом по slug, должен быть пустой список.
+        get_note = [
+            n for n in Note.objects.filter(slug=self.form_data['slug'])
+        ]
+        # Такой ассерт сработает только,
+        # если в списке note будет содержимое(т.е. б/д вернёт объект)
+        self.assertFalse(get_note)
 
     def test_not_unique_slug(self):
         self.note = Note.objects.create(
@@ -63,30 +74,14 @@ class TestNotes(TestCase):
         url = reverse('notes:add')
         self.form_data.pop('slug')
         self.auth_client.post(url, data=self.form_data)
-        self.assertEqual(Note.objects.count(), 1)
-        new_note = Note.objects.get()
         expected_slug = slugify(self.form_data['title'])
-        self.assertEqual(new_note.slug, expected_slug)
-
-
-class TestUpdateDeleteNotes(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = User.objects.create(username='залогиненый пользователь')
-        cls.author = User.objects.create(username='тот ещё автор')
-        cls.auth_client = Client()
-        cls.auth_client.force_login(cls.user)
-        cls.note = Note.objects.create(
-            title='Заголовок',
-            text='Текс записи',
-            slug='slugo',
-            author=cls.author,
-        )
-        cls.form_data = {
-            'title': 'Заголовок1',
-            'text': 'Текс записи1',
-            'slug': 'slug3',
-        }
+        # Получаем из б/д созданую запись и заодно убеждаемся,
+        # что slug добавлен в соотвествии с функцией транслитерации
+        get_note = Note.objects.get(slug=expected_slug)
+        # Вернет True если запись существует в б/д
+        self.assertTrue(get_note)
+        self.assertEqual(get_note.title, self.form_data['title'])
+        self.assertEqual(get_note.text, self.form_data['text'])
 
     def test_author_can_edit_note(self):
         url = reverse('notes:edit', args=(self.note.slug,))
@@ -111,8 +106,13 @@ class TestUpdateDeleteNotes(TestCase):
         url = reverse('notes:delete', args=(self.note.slug,))
         self.client.force_login(self.author)
         response = self.client.post(url)
+        # Распаковал Queryset через List comp.,
+        # если заметка успешно удалена список будет пустой.
+        note = [n.slug for n in Note.objects.filter(slug=self.note.slug)]
         self.assertRedirects(response, reverse('notes:success'))
-        self.assertEqual(Note.objects.count(), 0)
+        # Такой ассерт сработает только,
+        # если в списоке note будет содержимое(т.е. б/д вернёт объект)
+        self.assertFalse(note)
 
     def test_other_user_cant_delete_note(self):
         url = reverse('notes:delete', args=(self.note.slug,))

@@ -1,7 +1,9 @@
+from django.conf import settings
+from django.urls import reverse
+
 import pytest
 
-from django.urls import reverse
-from django.conf import settings
+from news.forms import CommentForm
 
 
 @pytest.mark.django_db
@@ -29,7 +31,9 @@ def test_comments_order(client, create_news, order_comment):
     response = client.get(url)
     news = response.context['news']
     all_comments = news.comment_set.all()
-    assert all_comments[0].created < all_comments[1].created
+    all_dates = [comment.created for comment in all_comments]
+    sorted_dates = sorted(all_dates)
+    assert all_dates == sorted_dates
 
 
 @pytest.mark.django_db
@@ -45,4 +49,7 @@ def test_comment_form_for_users(
 ):
     url = reverse('news:detail', args=(create_news.id,))
     response = parametrized_client.get(url)
+    if parametrized_client == 'admin_client':
+        type_form = type(response.context['form'])
+        assert type_form is CommentForm
     assert ('form' in response.context) is expected_status
