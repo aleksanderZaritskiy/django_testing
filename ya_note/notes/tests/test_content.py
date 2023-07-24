@@ -48,6 +48,5 @@ class TestNotesList(TestCase):
                 self.client.force_login(self.author)
                 url = reverse(name, args=args)
                 response = self.client.get(url)
-                type_form = type(response.context['form'])
-                self.assertEqual(type_form, NoteForm)
+                self.assertIsInstance(response.context['form'], NoteForm)
                 self.assertIn('form', response.context)

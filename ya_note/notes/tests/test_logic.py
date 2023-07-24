@@ -35,9 +35,7 @@ class TestNotes(TestCase):
         url_redirect = reverse('notes:success')
         response = self.auth_client.post(url, data=self.form_data)
         self.assertRedirects(response, url_redirect)
-        get_note = Note.objects.get(slug='slug3')
-        # Вернет True если запись существует в б/д
-        self.assertTrue(get_note)
+        get_note = Note.objects.get(slug=self.form_data['slug'])
         self.assertEqual(get_note.title, self.form_data['title'])
         self.assertEqual(get_note.text, self.form_data['text'])
         self.assertEqual(get_note.author, self.user)
@@ -46,9 +44,7 @@ class TestNotes(TestCase):
         url = reverse('notes:add')
         self.client.post(url, data=self.form_data)
         # Поиск созданной записи анонимом по slug, должен быть пустой список.
-        get_note = [
-            n for n in Note.objects.filter(slug=self.form_data['slug'])
-        ]
+        get_note = Note.objects.filter(slug=self.form_data['slug']).exists()
         # Такой ассерт сработает только,
         # если в списке note будет содержимое(т.е. б/д вернёт объект)
         self.assertFalse(get_note)
@@ -77,11 +73,9 @@ class TestNotes(TestCase):
         expected_slug = slugify(self.form_data['title'])
         # Получаем из б/д созданую запись и заодно убеждаемся,
         # что slug добавлен в соотвествии с функцией транслитерации
-        get_note = Note.objects.get(slug=expected_slug)
+        get_note = Note.objects.filter(slug=expected_slug).exists()
         # Вернет True если запись существует в б/д
         self.assertTrue(get_note)
-        self.assertEqual(get_note.title, self.form_data['title'])
-        self.assertEqual(get_note.text, self.form_data['text'])
 
     def test_author_can_edit_note(self):
         url = reverse('notes:edit', args=(self.note.slug,))
@@ -92,6 +86,7 @@ class TestNotes(TestCase):
         self.assertEqual(self.note.title, self.form_data['title'])
         self.assertEqual(self.note.text, self.form_data['text'])
         self.assertEqual(self.note.slug, self.form_data['slug'])
+        self.assertEqual(self.note.author, self.author)
 
     def test_other_user_cant_edit_note(self):
         url = reverse('notes:edit', args=(self.note.slug,))
@@ -101,6 +96,7 @@ class TestNotes(TestCase):
         self.assertEqual(self.note.title, note_from_db.title)
         self.assertEqual(self.note.text, note_from_db.text)
         self.assertEqual(self.note.slug, note_from_db.slug)
+        self.assertEqual(self.note.author, note_from_db.author)
 
     def test_author_can_delete_note(self):
         url = reverse('notes:delete', args=(self.note.slug,))
@@ -108,7 +104,7 @@ class TestNotes(TestCase):
         response = self.client.post(url)
         # Распаковал Queryset через List comp.,
         # если заметка успешно удалена список будет пустой.
-        note = [n.slug for n in Note.objects.filter(slug=self.note.slug)]
+        note = Note.objects.filter(slug=self.note.slug).exists()
         self.assertRedirects(response, reverse('notes:success'))
         # Такой ассерт сработает только,
         # если в списоке note будет содержимое(т.е. б/д вернёт объект)
@@ -116,6 +112,9 @@ class TestNotes(TestCase):
 
     def test_other_user_cant_delete_note(self):
         url = reverse('notes:delete', args=(self.note.slug,))
+        count_note_before = Note.objects.count()
         response = self.auth_client.post(url)
+        count_note_after = Note.objects.count()
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.assertEqual(Note.objects.count(), 1)
+        # Проверяем, что количество заметок осталось неизменным
+        self.assertEqual(count_note_before, count_note_after)

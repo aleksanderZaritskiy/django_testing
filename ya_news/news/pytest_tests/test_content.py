@@ -1,8 +1,6 @@
+import pytest
 from django.conf import settings
 from django.urls import reverse
-
-import pytest
-
 from news.forms import CommentForm
 
 
@@ -50,6 +48,7 @@ def test_comment_form_for_users(
     url = reverse('news:detail', args=(create_news.id,))
     response = parametrized_client.get(url)
     if parametrized_client == 'admin_client':
-        type_form = type(response.context['form'])
-        assert type_form is CommentForm
+        assert isinstance(response.context['form'], CommentForm)
+        print(response.context['form'])
+        print(response.context.get('form'))
     assert ('form' in response.context) is expected_status

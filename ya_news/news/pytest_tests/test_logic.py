@@ -1,9 +1,8 @@
 # test_logic.py
 from http import HTTPStatus
 
-from django.urls import reverse
-
 import pytest
+from django.urls import reverse
 from news.forms import BAD_WORDS, WARNING
 from news.models import Comment, News
 from pytest_django.asserts import assertFormError, assertRedirects
@@ -13,13 +12,16 @@ def test_user_can_create_comment(
     admin_user, admin_client, form_data, create_news
 ):
     url = reverse('news:detail', args=(create_news.id,))
-    assert Comment.objects.count() == 0
+    comments_before = Comment.objects.count()
     response = admin_client.post(url, data=form_data)
+    comments_after = Comment.objects.count()
     assertRedirects(response, f'{url}#comments')
-    assert Comment.objects.count() == 1
-    new_comment = Comment.objects.get()
-    news = News.objects.get()
-    comment_connect_news = news.comment_set.get()
+    # Убеждаемся, что после отправки создание комментария
+    # в б/д добавился новый
+    assert comments_after - comments_before == 1
+    # Получаем крайний комментрий из б/д
+    new_comment = Comment.objects.last()
+    comment_connect_news = create_news.comment_set.last()
     assert new_comment.text == form_data['text']
     assert new_comment.author == admin_user
     assert new_comment.author == comment_connect_news.author

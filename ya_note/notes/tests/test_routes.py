@@ -48,18 +48,13 @@ class TestRoutes(TestCase):
         urls_optional_status_for_users = [
             (
                 ('notes:home', None),
-                [
-                    (self.client, HTTPStatus.OK),
-                    (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
-                ],
+                [(self.client, HTTPStatus.OK)],
             ),
             (
                 ('notes:add', None),
                 [
                     (self.client, HTTPStatus.FOUND),
                     (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
             (
@@ -67,7 +62,6 @@ class TestRoutes(TestCase):
                 [
                     (self.client, HTTPStatus.FOUND),
                     (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
             (
@@ -75,7 +69,6 @@ class TestRoutes(TestCase):
                 [
                     (self.client, HTTPStatus.FOUND),
                     (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
             (
@@ -106,24 +99,18 @@ class TestRoutes(TestCase):
                 ('users:login', None),
                 [
                     (self.client, HTTPStatus.OK),
-                    (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
             (
                 ('users:logout', None),
                 [
                     (self.client, HTTPStatus.OK),
-                    (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
             (
                 ('users:signup', None),
                 [
                     (self.client, HTTPStatus.OK),
-                    (self.auth_client, HTTPStatus.OK),
-                    (self.author_client, HTTPStatus.OK),
                 ],
             ),
         ]

@@ -1,12 +1,9 @@
 # conftest.py
 from datetime import datetime, timedelta
 
+import pytest
 from django.conf import settings
 from django.utils import timezone
-
-import pytest
-
-# Импортируем модель заметки, чтобы создать экземпляр.
 from news.models import Comment, News
 
 
