@@ -3,9 +3,10 @@ from http import HTTPStatus
 
 import pytest
 from django.urls import reverse
-from news.forms import BAD_WORDS, WARNING
-from news.models import Comment, News
 from pytest_django.asserts import assertFormError, assertRedirects
+
+from news.models import Comment, News
+from news.forms import BAD_WORDS, WARNING
 
 COMMENTS_OBJ_IN_DATABASE = 1
 
@@ -26,6 +27,7 @@ def test_user_can_create_comment(
     new_comment = Comment.objects.get()
     assert new_comment.text == form_data['text']
     assert new_comment.author == admin_user
+    assert new_comment.news.id == create_news.id
 
 
 @pytest.mark.django_db
@@ -74,13 +76,14 @@ def test_author_can_edit_comment(
     assertRedirects(response, f'{url}#comments')
     news = News.objects.get(id=create_news.id)
     # Получаем комментарий из б/д уже с изменениями.
-    comment_connect_news = news.comment_set.get(id=create_comment.id)
+    new_comment = news.comment_set.get(id=create_comment.id)
     # Убеждаемся, что текст комментария изменился.
-    assert create_comment.text != comment_connect_news.text
-    assert comment_connect_news.text == form_data['text']
-    assert comment_connect_news.author == author
+    assert create_comment.text != new_comment.text
+    assert new_comment.text == form_data['text']
+    # Проверяем, что новость к которой относится комментарий не изменилась.
+    assert new_comment.news.id == create_news.id
     # Проверяем что автор комментария не изменялся в процессе редактирования.
-    assert create_comment.author == comment_connect_news.author
+    assert create_comment.author == new_comment.author
 
 
 def test_other_user_cant_edit_comment(admin_client, form_data, create_comment):
@@ -98,12 +101,11 @@ def test_other_user_cant_edit_comment(admin_client, form_data, create_comment):
 def test_author_can_delete_comment(author_client, create_news, create_comment):
     url = reverse('news:detail', args=(create_news.id,))
     # Получаем объект комментария, котроый будем удалять
-    comment_before = Comment.objects.filter(id=create_comment.id)
     url_delete = reverse('news:delete', args=(create_comment.id,))
     response = author_client.post(url_delete)
     assertRedirects(response, f'{url}#comments')
     # Проверяем пустой ли QuerySet т.к. данные комментария удалены.
-    assert not comment_before
+    assert not Comment.objects.filter(id=create_comment.id).exists()
 
 
 def test_other_user_cant_delete_note(admin_client, form_data, create_comment):

@@ -81,12 +81,16 @@ class TestNotes(TestCase):
         url = reverse('notes:edit', args=(self.note.slug,))
         self.client.force_login(self.author)
         response = self.client.post(url, self.form_data)
+        new_note = Note.objects.get(slug=self.form_data['slug'])
         self.assertRedirects(response, reverse('notes:success'))
-        self.note.refresh_from_db()
-        self.assertEqual(self.note.title, self.form_data['title'])
-        self.assertEqual(self.note.text, self.form_data['text'])
-        self.assertEqual(self.note.slug, self.form_data['slug'])
-        self.assertEqual(self.note.author, self.author)
+        # Убеждаемся что поля измененной заметки в бд соотвествуют форме.
+        self.assertEqual(new_note.title, self.form_data['title'])
+        self.assertEqual(new_note.text, self.form_data['text'])
+        self.assertEqual(new_note.slug, self.form_data['slug'])
+        # Убеждаемся что автор не изменился.
+        self.assertEqual(self.note.author, new_note.author)
+        # Убеждаемся, что старая заметка не идентична новой.
+        self.assertIsNot(self.note, new_note)
 
     def test_other_user_cant_edit_note(self):
         url = reverse('notes:edit', args=(self.note.slug,))
@@ -112,9 +116,7 @@ class TestNotes(TestCase):
 
     def test_other_user_cant_delete_note(self):
         url = reverse('notes:delete', args=(self.note.slug,))
-        count_note_before = Note.objects.count()
         response = self.auth_client.post(url)
-        count_note_after = Note.objects.count()
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        # Проверяем, что количество заметок осталось неизменным
-        self.assertEqual(count_note_before, count_note_after)
+        # Проверяем, что заметка по прежнему существует
+        self.assertTrue(Note.objects.filter(slug=self.note.slug).exists())
