@@ -100,19 +100,14 @@ def test_other_user_cant_edit_comment(admin_client, form_data, create_comment):
 
 def test_author_can_delete_comment(author_client, create_news, create_comment):
     url = reverse('news:detail', args=(create_news.id,))
-    # Получаем объект комментария, котроый будем удалять
     url_delete = reverse('news:delete', args=(create_comment.id,))
     response = author_client.post(url_delete)
     assertRedirects(response, f'{url}#comments')
-    # Проверяем пустой ли QuerySet т.к. данные комментария удалены.
     assert not Comment.objects.filter(id=create_comment.id).exists()
 
 
 def test_other_user_cant_delete_note(admin_client, form_data, create_comment):
     url = reverse('news:delete', args=(create_comment.id,))
-    comment_before = Comment.objects.filter(id=create_comment.id)
     response = admin_client.post(url)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Делаем по аналогии с test_other_user_cant_delete_note,
-    # но в этот раз QuerySet не должен быть пустым.
-    assert comment_before
+    assert Comment.objects.filter(id=create_comment.id).exists()
